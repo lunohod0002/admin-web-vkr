@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Добавление достопримечательности</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <span class="topbar__title">Админ панель</span>
+  
+  </header>
+
+  <main class="page">
+    <h1 class="title title--lg">Добавление достопримечательности</h1>
+
+    <form id="attraction-form" class="form" novalidate>
+      <div class="field">
+        <label class="label" for="name">Название</label>
+        <input class="input" id="name" type="text" placeholder="Введите название" required />
+      </div>
+
+      <div class="field">
+        <label class="label" for="description">Описание</label>
+        <textarea class="input textarea" id="description" rows="4" placeholder="Введите описание"></textarea>
+      </div>
+
+      <div class="field">
+        <label class="label" for="address">Адрес</label>
+        <input class="input" id="address" type="text" placeholder="Введите адрес" />
+      </div>
+
+      <div class="field">
+        <label class="label" for="workingHours">Время работы</label>
+        <input class="input" id="workingHours" type="text" placeholder="Введите время работы" />
+      </div>
+
+      <div class="media-row">
+        <span class="label label--inline">Загрузить фото</span>
+        <input id="photo-input" class="hidden-file" type="file" accept="image/*" multiple />
+        <button type="button" class="btn btn--grey" data-for="photo-input">Выберите файл</button>
+      </div>
+      <p id="photo-count" class="hint" hidden></p>
+
+      <div class="media-row">
+        <span class="label label--inline">Загрузить видео</span>
+        <input id="video-input" class="hidden-file" type="file" accept="video/*" multiple />
+        <button type="button" class="btn btn--grey" data-for="video-input">Выберите файл</button>
+      </div>
+      <p id="video-count" class="hint" hidden></p>
+
+      <div class="media-row">
+        <span class="label label--inline">Загрузить аудио</span>
+        <input id="audio-input" class="hidden-file" type="file" accept="audio/*" multiple />
+        <button type="button" class="btn btn--grey" data-for="audio-input">Выберите файл</button>
+      </div>
+      <p id="audio-count" class="hint" hidden></p>
+
+      <div class="field">
+        <label class="label" for="phone">Телефон</label>
+        <input class="input" id="phone" type="tel" placeholder="Введите телефон" />
+      </div>
+
+      <div class="field">
+        <label class="label" for="website">Сайт</label>
+        <input class="input" id="website" type="url" placeholder="Введите сайт" />
+      </div>
+
+      <div class="field">
+        <label class="label" for="email">Email</label>
+        <input class="input" id="email" type="email" placeholder="Введите email" />
+      </div>
+
+   
+      <div class="field">
+        <label class="label" for="price">Цена</label>
+        <input class="input" id="price" type="number" min="0" placeholder="Введите цену" />
+      </div>
+
+      <h2 class="title title--md center">Добавить станции</h2>
+
+      <div class="station-builder">
+        <div class="field">
+          <label class="label" for="stationName">Название</label>
+          <input class="input" id="stationName" type="text" placeholder="Введите название станции" />
+        </div>
+        <div class="field">
+          <label class="label" for="stationBranch">Ветка</label>
+          <input class="input" id="stationBranch" type="text" placeholder="Введите ветку" />
+        </div>
+        <div class="field" style="margin-bottom: 0;">
+          <label class="label" for="stationDistance">Расстояние</label>
+          <input class="input" id="stationDistance" type="number" min="0" placeholder="Введите расстояние, м" />
+        </div>
+        <button id="add-station-btn" type="button" class="btn btn--primary btn--narrow">Добавить</button>
+      </div>
+
+      <ul id="stations-list" class="stations-list"></ul>
+
+      <div id="status" class="status" role="alert" hidden></div>
+
+      <button id="submit-btn" type="submit" class="btn btn--primary btn--narrow submit-btn">Сохранить</button>
+    </form>
+  </main>
+
+  <script src="config.js"></script>
+  <script src="api.js"></script>
+  <script src="attraction.js"></script>
+</body>
+</html>

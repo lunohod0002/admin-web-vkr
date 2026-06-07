@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Админ панель — вход</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="auth-body">
+  <main class="card auth-card">
+    <h1 class="title title--lg">Админ панель</h1>
+
+    <form id="login-form" class="form" novalidate>
+      <div class="field">
+        <label class="label" for="login">Логин</label>
+        <input class="input" id="login" type="text" autocomplete="username"
+               placeholder="Введите логин" required />
+      </div>
+
+      <div class="field">
+        <label class="label" for="password">Пароль</label>
+        <input class="input" id="password" type="password" autocomplete="current-password"
+               placeholder="Введите пароль" required />
+      </div>
+
+      <div id="login-status" class="status status--error" role="alert" hidden></div>
+
+      <button id="login-btn" class="btn btn--primary btn--block" type="submit">Войти</button>
+    </form>
+  </main>
+
+  <script src="config.js"></script>
+  <script src="api.js"></script>
+  <script>
+    const form = document.getElementById("login-form");
+    const statusEl = document.getElementById("login-status");
+    const btn = document.getElementById("login-btn");
+
+    function showError(msg) {
+      statusEl.textContent = msg || "";
+      statusEl.hidden = !msg;
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const loginValue = document.getElementById("login").value.trim();
+      const passwordValue = document.getElementById("password").value;
+
+      if (!loginValue || !passwordValue) {
+        showError("Введите логин и пароль");
+        return;
+      }
+
+      showError("");
+      btn.disabled = true;
+      btn.textContent = "Вход...";
+
+      try {
+        const res = await login(loginValue, passwordValue);
+
+        if (res.ok) {
+          // Бэкенд проставил HttpOnly-куки -> уходим на форму.
+          location.replace("add-attraction.html");
+          return;
+        }
+        if (res.status === 401 || res.status === 403) {
+          showError("Неверный логин или пароль");
+        } else {
+          showError("Ошибка входа: HTTP " + res.status);
+        }
+      } catch (err) {
+        showError("Не удалось соединиться с сервером");
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Войти";
+      }
+    });
+  </script>
+</body>
+</html>
