@@ -64,7 +64,8 @@
 
         if (res.ok) {
           // Бэкенд проставил HttpOnly-куки -> уходим на форму.
-          location.replace("add-attraction.html");
+          location.replace("dashboard.html");   // было: "add-attraction.html"
+
           return;
         }
         if (res.status === 401 || res.status === 403) {

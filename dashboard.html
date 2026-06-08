@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Админ панель</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <span class="topbar__title">Админ панель</span>
+    <button id="logout-btn" type="button" class="btn btn--text">Выйти</button>
+  </header>
+
+  <main class="page page--center">
+    <h1 class="title title--lg center">Что хотите сделать?</h1>
+
+    <div class="dashboard-actions">
+      <a class="btn btn--primary btn--block" href="add-attraction.html">
+        Добавить новую достопримечательность
+      </a>
+      <a class="btn btn--outline btn--block" href="manage-attractions.html">
+        Управление достопримечательностями
+      </a>
+    </div>
+  </main>
+
+  <script src="config.js"></script>
+  <script src="api.js"></script>
+  <script>
+    // Защита маршрута: без токена — на логин.
+    if (!sessionStorage.getItem("accessToken")) {
+      location.replace("login.html");
+    }
+    document.getElementById("logout-btn").addEventListener("click", () => logout());
+  </script>
+</body>
+</html>

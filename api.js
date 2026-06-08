@@ -142,17 +142,7 @@ async function login(loginValue, passwordValue) {
 }
 
 async function logout() {
-  try {
-    // Можно опционально отправить refreshToken на бэкенд, чтобы он его занес в чёрный список
-    const refreshToken = getRefreshToken();
-    await apiFetch(CONFIG.ENDPOINTS.logout, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ refreshToken })
-    }, false);
-  } catch (_) {
-    /* игнорируем */
-  }
+
   clearTokens();
   redirectToLogin();
 }
@@ -169,4 +159,37 @@ async function fetchStations() {
   if (!res.ok) throw new Error(`получение станций — HTTP ${res.status}`);
   const data = await res.json();
   return Array.isArray(data?.stations) ? data.stations : [];
+}
+async function fetchAttractions() {
+  const res = await apiFetch(CONFIG.ENDPOINTS.attractions);
+  if (!res.ok) throw new Error(`получение достопримечательностей — HTTP ${res.status}`);
+  const data = await res.json();
+  if (Array.isArray(data)) return data;
+  return Array.isArray(data?.attractions) ? data.attractions : [];
+}
+
+/**
+ * Удаление достопримечательности по ID.
+ */
+async function deleteAttraction(id) {
+  const res = await apiFetch(`${CONFIG.ENDPOINTS.attractions}/${id}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) throw new Error(`удаление — HTTP ${res.status}`);
+}
+/* -------- Удаление медиа -------- */
+
+/**
+ * Удаление одного медиафайла по имени.
+ * 404 трактуем как «уже удалён» — не ошибка.
+ */
+async function deleteMedia(filename) {
+  if (!filename) return;
+  const res = await apiFetch(
+    `${CONFIG.ENDPOINTS.deleteMedia}/${encodeURIComponent(filename)}`,
+    { method: "DELETE" }
+  );
+  if (!res.ok && res.status !== 404) {
+    throw new Error(`удаление файла ${filename} — HTTP ${res.status}`);
+  }
 }

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Управление достопримечательностями</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar topbar--with-search">
+    <div class="topbar__left">
+      <a href="dashboard.html" class="btn btn--text">← Назад</a>
+      <span class="topbar__title">Достопримечательности</span>
+    </div>
+    <div class="topbar__search">
+      <input
+        id="search"
+        class="input search-input"
+        type="search"
+        placeholder="Поиск по названию или ID"
+        autocomplete="off"
+      />
+    </div>
+  </header>
+
+  <main class="page">
+    <div id="status" class="status" role="alert" hidden></div>
+
+    <ul id="attractions-list" class="attraction-list"></ul>
+
+    <p id="empty-state" class="empty-state" hidden></p>
+  </main>
+
+  <script src="config.js"></script>
+  <script src="api.js"></script>
+  <script src="manage-attractions.js"></script>
+</body>
+</html>

@@ -6,6 +6,7 @@ const CONFIG = {
     logout:      "/auth/logout",
     upload:      "/api/medias/upload",
     download:    "/api/medias/download",
+    deleteMedia: "/api/medias/delete",   // ← новое
     attractions: "/api/attractions",
     stations:    "/api/stations/all",
   },
