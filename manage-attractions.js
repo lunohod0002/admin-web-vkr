@@ -162,9 +162,9 @@ function buildCard(a) {
 
 /* -------- Действия -------- */
 function onEdit(a) {
-  // TODO: страница редактирования
-  console.log("Edit:", a);
-  alert(`Редактирование «${a.name}» — TODO`);
+  // Переходим на ту же форму, что и для добавления, но в режиме
+  // редактирования: attraction.js увидит ?id=... и подтянет данные с сервера.
+  location.href = "add-attraction.html?id=" + encodeURIComponent(a.id);
 }
 
 async function onDelete(a, btn) {

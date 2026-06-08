@@ -169,6 +169,19 @@ async function fetchAttractions() {
 }
 
 /**
+ * Получение одной достопримечательности по ID.
+ * Используется на странице редактирования (add-attraction.html?id=...).
+ * Ожидаемый ответ — объект AttractionInfoResponse:
+ *   { id, name, phoneNumber, email, address, workingHours, description,
+ *     price, urlRef, images[], videos[], audios[], stationAttractions[] }
+ */
+async function fetchAttraction(id) {
+  const res = await apiFetch(`${CONFIG.ENDPOINTS.attractions}/${encodeURIComponent(id)}`);
+  if (!res.ok) throw new Error(`получение достопримечательности — HTTP ${res.status}`);
+  return res.json();
+}
+
+/**
  * Удаление достопримечательности по ID.
  */
 async function deleteAttraction(id) {
@@ -176,6 +189,38 @@ async function deleteAttraction(id) {
     method: "DELETE",
   });
   if (!res.ok) throw new Error(`удаление — HTTP ${res.status}`);
+}
+
+/**
+ * Создание новой достопримечательности.
+ * Тело — AttractionRequest. Возвращает созданный объект (AttractionInfoResponse).
+ */
+async function createAttraction(request) {
+  const res = await apiFetch(CONFIG.ENDPOINTS.attractions, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(request),
+  });
+  if (!res.ok) throw new Error(`создание — HTTP ${res.status}`);
+  return res.json();
+}
+
+/**
+ * Обновление существующей достопримечательности по ID.
+ * PUT /api/attractions/{id} с телом AttractionRequest.
+ * Возвращает обновлённый объект (AttractionInfoResponse).
+ */
+async function updateAttraction(id, request) {
+  const res = await apiFetch(
+    `${CONFIG.ENDPOINTS.attractions}/${encodeURIComponent(id)}`,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(request),
+    }
+  );
+  if (!res.ok) throw new Error(`обновление — HTTP ${res.status}`);
+  return res.json();
 }
 /* -------- Удаление медиа -------- */
 
@@ -192,4 +237,24 @@ async function deleteMedia(filename) {
   if (!res.ok && res.status !== 404) {
     throw new Error(`удаление файла ${filename} — HTTP ${res.status}`);
   }
+}
+
+/* -------- Просмотр медиа -------- */
+
+/**
+ * Скачивает медиафайл ЧЕРЕЗ apiFetch (с Bearer-токеном) и возвращает
+ * локальный objectURL (blob:), который можно подставить в src у <img>/<video>/<audio>.
+ *
+ * Зачем так: теги <img>/<video>/<audio> грузят src напрямую и НЕ умеют
+ * слать заголовок Authorization. Если эндпоинт download закрыт авторизацией,
+ * прямой src вернёт 401. Поэтому качаем через fetch и отдаём blob-URL.
+ *
+ * ВАЖНО: вызывающий код обязан освободить URL через URL.revokeObjectURL(),
+ * когда он больше не нужен (иначе утечка памяти).
+ */
+async function fetchMediaBlobUrl(urlOrPath) {
+  const res = await apiFetch(urlOrPath);
+  if (!res.ok) throw new Error(`загрузка медиа — HTTP ${res.status}`);
+  const blob = await res.blob();
+  return URL.createObjectURL(blob);
 }
