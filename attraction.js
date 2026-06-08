@@ -1,14 +1,18 @@
-
+/* ============================================================
+   Логика страницы добавления достопримечательности
+   ============================================================ */
 
 const state = {
   photos: [],
   videos: [],
   audios: [],
-  stations: [],
+  stations: [],         // станции, выбранные пользователем (для отправки)
+  allStations: [],      // справочник с сервера: [{ name, branch }]
 };
 
 const $ = (id) => document.getElementById(id);
 
+/* -------- Статус -------- */
 function showStatus(message, kind = "") {
   const el = $("status");
   el.textContent = message || "";
@@ -16,6 +20,7 @@ function showStatus(message, kind = "") {
   el.className = "status" + (kind ? " status--" + kind : "");
 }
 
+/* -------- Выбор файлов -------- */
 function setupFileButtons() {
   document.querySelectorAll(".btn--grey").forEach((btn) => {
     const inputId = btn.dataset.for;
@@ -44,21 +49,108 @@ function bindInput(inputId, stateKey, countId, label) {
   });
 }
 
-function addStation() {
-  const stationName = $("stationName").value.trim();
-  const branch = $("stationBranch").value.trim();
-  const distance = parseInt($("stationDistance").value.trim(), 10);
+/* -------- Справочник станций -------- */
 
-  if (!stationName || !branch || Number.isNaN(distance)) {
-    showStatus("Заполните все поля станции", "error");
+/**
+ * Загружает список станций с сервера при старте страницы
+ * и заполняет dropdown веток уникальными значениями.
+ * Если запрос упал — показываем ошибку, дропдауны блокируем,
+ * но остальную форму оставляем рабочей.
+ */
+async function loadStations() {
+  const branchSelect = $("stationBranch");
+  const stationSelect = $("stationName");
+
+  try {
+    const stations = await fetchStations();
+    state.allStations = stations;
+
+    const branches = [...new Set(stations.map((s) => s.branch))]
+      .sort((a, b) => a.localeCompare(b, "ru"));
+
+    fillSelect(branchSelect, branches, "Выберите ветку");
+    fillSelect(stationSelect, [], "Сначала выберите ветку");
+    stationSelect.disabled = true;
+  } catch (err) {
+    fillSelect(branchSelect, [], "Не удалось загрузить");
+    fillSelect(stationSelect, [], "Не удалось загрузить");
+    branchSelect.disabled = true;
+    stationSelect.disabled = true;
+    showStatus("Не удалось загрузить список станций: " + err.message, "error");
+  }
+}
+
+/**
+ * Заполняет <select> опциями. Первой идёт пустой placeholder.
+ */
+function fillSelect(selectEl, items, placeholder) {
+  selectEl.innerHTML = "";
+
+  const ph = document.createElement("option");
+  ph.value = "";
+  ph.textContent = placeholder;
+  selectEl.appendChild(ph);
+
+  items.forEach((item) => {
+    const opt = document.createElement("option");
+    opt.value = item;
+    opt.textContent = item;
+    selectEl.appendChild(opt);
+  });
+}
+
+/**
+ * Каскад: при смене ветки фильтруем список станций.
+ */
+function onBranchChange() {
+  const branch = $("stationBranch").value;
+  const stationSelect = $("stationName");
+
+  if (!branch) {
+    fillSelect(stationSelect, [], "Сначала выберите ветку");
+    stationSelect.disabled = true;
+    return;
+  }
+
+  const stations = state.allStations
+    .filter((s) => s.branch === branch)
+    .map((s) => s.name)
+    .sort((a, b) => a.localeCompare(b, "ru"));
+
+  fillSelect(stationSelect, stations, "Выберите станцию");
+  stationSelect.disabled = false;
+}
+
+/* -------- Добавление станций к достопримечательности -------- */
+function addStation() {
+  const branch = $("stationBranch").value.trim();
+  const stationName = $("stationName").value.trim();
+  const distanceRaw = $("stationDistance").value.trim();
+  const distance = parseInt(distanceRaw, 10);
+
+  if (!branch) {
+    showStatus("Выберите ветку", "error");
+    return;
+  }
+  if (!stationName) {
+    showStatus("Выберите станцию", "error");
+    return;
+  }
+  if (Number.isNaN(distance) || distance < 0) {
+    showStatus("Введите корректное расстояние", "error");
+    return;
+  }
+  if (state.stations.some((s) => s.stationName === stationName && s.branch === branch)) {
+    showStatus("Эта станция уже добавлена", "error");
     return;
   }
 
   state.stations.push({ stationName, branch, distance });
   renderStations();
 
-  $("stationName").value = "";
+  // Сбрасываем форму выбора станции
   $("stationBranch").value = "";
+  onBranchChange();              // станция -> снова заблокирована
   $("stationDistance").value = "";
   showStatus("");
 }
@@ -91,6 +183,7 @@ function renderStations() {
   });
 }
 
+/* -------- Загрузка медиа -------- */
 async function uploadMedia(files, type) {
   if (!files || files.length === 0) return [];
 
@@ -109,6 +202,7 @@ async function uploadMedia(files, type) {
   }));
 }
 
+/* -------- Отправка формы -------- */
 async function onSubmit() {
   const name = $("name").value.trim();
   if (!name) {
@@ -117,6 +211,7 @@ async function onSubmit() {
     return;
   }
 
+  setLoading(true);
   showStatus("Загрузка...");
 
   try {
@@ -156,6 +251,7 @@ async function onSubmit() {
   }
 }
 
+/* -------- Блокировка интерфейса -------- */
 function setLoading(loading) {
   const ids = [
     "submit-btn", "add-station-btn",
@@ -167,16 +263,24 @@ function setLoading(loading) {
 
   document.querySelectorAll(".btn--grey").forEach((b) => (b.disabled = loading));
   $("submit-btn").textContent = loading ? "Сохранение..." : "Сохранить";
+
+  // После разблокировки восстанавливаем правильное состояние
+  // селекта станций (он зависит от выбранной ветки, а не от loading-флага)
+  if (!loading) onBranchChange();
 }
 
+/* -------- Инициализация -------- */
 document.addEventListener("DOMContentLoaded", () => {
   setupFileButtons();
   setupFileInputs();
 
+  $("stationBranch").addEventListener("change", onBranchChange);
   $("add-station-btn").addEventListener("click", addStation);
 
   $("attraction-form").addEventListener("submit", (e) => {
     e.preventDefault();
     onSubmit();
   });
+
+  loadStations();
 });

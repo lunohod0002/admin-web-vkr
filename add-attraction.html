@@ -85,12 +85,16 @@
 
       <div class="station-builder">
         <div class="field">
-          <label class="label" for="stationName">Название</label>
-          <input class="input" id="stationName" type="text" placeholder="Введите название станции" />
+          <label class="label" for="stationBranch">Ветка</label>
+          <select class="input" id="stationBranch">
+            <option value="">Загрузка...</option>
+          </select>
         </div>
         <div class="field">
-          <label class="label" for="stationBranch">Ветка</label>
-          <input class="input" id="stationBranch" type="text" placeholder="Введите ветку" />
+          <label class="label" for="stationName">Название</label>
+          <select class="input" id="stationName" disabled>
+            <option value="">Сначала выберите ветку</option>
+          </select>
         </div>
         <div class="field" style="margin-bottom: 0;">
           <label class="label" for="stationDistance">Расстояние</label>

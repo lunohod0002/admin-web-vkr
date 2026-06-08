@@ -1,4 +1,20 @@
+/* ============================================================
+   API-СЛОЙ: fetch с Bearer токеном + авто-refresh при 401
+   ------------------------------------------------------------
+   ВАЖНО про токены:
+   Теперь access и refresh токены приходят в теле ответа (JSON).
+   Мы сохраняем их в sessionStorage (чтобы не терять при перезагрузке).
+   Access токен прикрепляется вручную в заголовок Authorization.
+   При 401 ошибке делаем рефреш, отправляя refreshToken в теле запроса.
+   ============================================================ */
 
+let _refreshPromise = null;
+
+function buildUrl(path) {
+  return path.startsWith("http") ? path : CONFIG.BASE_URL + path;
+}
+
+/* -------- Хранилище токенов -------- */
 function getAccessToken() {
   return sessionStorage.getItem("accessToken");
 }
@@ -17,6 +33,12 @@ function clearTokens() {
   sessionStorage.removeItem("refreshToken");
 }
 
+/**
+ * Обновляет access-токен через /auth/refresh.
+ * Отправляет refreshToken в теле JSON-запроса.
+ * Сохраняет новую пару токенов.
+ * Возвращает true, если обновление прошло успешно.
+ */
 async function refreshAccessToken() {
   if (_refreshPromise) return _refreshPromise; // refresh уже идёт — ждём его
 
@@ -51,7 +73,10 @@ async function refreshAccessToken() {
   return _refreshPromise;
 }
 
-
+/**
+ * Запрос к API. Подкладывает Authorization: Bearer <token>.
+ * При 401 один раз дёргает /auth/refresh и повторяет запрос.
+ */
 async function apiFetch(path, options = {}, _retry = true) {
   // Грамотно склеиваем заголовки: сохраняем те, что переданы, и добавляем Authorization
   const headers = new Headers(options.headers || {});
@@ -95,8 +120,11 @@ function redirectToLogin() {
   }
 }
 
+/* -------- Авторизация -------- */
 
-
+/**
+ * Вход. Теперь читает токены из тела ответа и сохраняет их.
+ */
 async function login(loginValue, passwordValue) {
   const res = await fetch(buildUrl(CONFIG.ENDPOINTS.login), {
     method: "POST",
@@ -115,6 +143,7 @@ async function login(loginValue, passwordValue) {
 
 async function logout() {
   try {
+    // Можно опционально отправить refreshToken на бэкенд, чтобы он его занес в чёрный список
     const refreshToken = getRefreshToken();
     await apiFetch(CONFIG.ENDPOINTS.logout, {
       method: "POST",
@@ -122,7 +151,22 @@ async function logout() {
       body: JSON.stringify({ refreshToken })
     }, false);
   } catch (_) {
+    /* игнорируем */
   }
   clearTokens();
   redirectToLogin();
+}
+
+/* -------- Справочники -------- */
+
+/**
+ * Получение списка всех станций.
+ * Ожидаемый формат ответа: { stations: [{ name, branch }, ...] }
+ * Возвращает массив объектов { name, branch }.
+ */
+async function fetchStations() {
+  const res = await apiFetch(CONFIG.ENDPOINTS.stations);
+  if (!res.ok) throw new Error(`получение станций — HTTP ${res.status}`);
+  const data = await res.json();
+  return Array.isArray(data?.stations) ? data.stations : [];
 }

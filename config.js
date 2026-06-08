@@ -7,6 +7,7 @@ const CONFIG = {
     upload:      "/api/medias/upload",
     download:    "/api/medias/download",
     attractions: "/api/attractions",
+    stations:    "/api/stations/all",
   },
   FILE_FIELD: "file",
 };
