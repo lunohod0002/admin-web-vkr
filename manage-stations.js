@@ -150,8 +150,7 @@ function buildCard(s) {
   editBtn.className = "btn btn--outline btn--small";
   editBtn.textContent = "Редактировать";
   // Функционал намеренно не реализован — пока показываем заглушку
-  editBtn.addEventListener("click", onEditStub);
-
+  editBtn.addEventListener("click", () => onEditStub(s));
   const delBtn = document.createElement("button");
   delBtn.type = "button";
   delBtn.className = "btn btn--danger btn--small";
@@ -165,9 +164,9 @@ function buildCard(s) {
 }
 
 /* -------- Действия -------- */
-function onEditStub() {
-  // Заглушка для будущего функционала редактирования
-  showStatus("Редактирование пока недоступно", "error");
+function onEditStub(s) {
+  // Переходим на страницу станции с параметрами name и branch
+  location.href = `add-station.html?stationName=${encodeURIComponent(s.name)}&branch=${encodeURIComponent(s.branch)}`;
 }
 
 async function onDelete(s, btn) {

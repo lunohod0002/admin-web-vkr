@@ -15,54 +15,87 @@ function buildUrl(path) {
 }
 
 /* -------- Хранилище токенов -------- */
+/* -------- Хранилище токенов -------- */
 function getAccessToken() {
-  return sessionStorage.getItem("accessToken");
+  const token = sessionStorage.getItem("accessToken");
+  return (token && token !== "undefined") ? token : null; // Защита от строки "undefined"
 }
 
 function getRefreshToken() {
-  return sessionStorage.getItem("refreshToken");
+  const token = sessionStorage.getItem("refreshToken");
+  return (token && token !== "undefined") ? token : null; // Защита от строки "undefined"
 }
 
 function setTokens(access, refresh) {
+  // ВАЖНО: не сохраняем undefined или null, чтобы не ломать логику
+  if (!access || !refresh) {
+    console.error("Попытка сохранить невалидные токены:", { access, refresh });
+    clearTokens();
+    return;
+  }
   sessionStorage.setItem("accessToken", access);
   sessionStorage.setItem("refreshToken", refresh);
 }
 
 function clearTokens() {
-  sessionStorage.removeItem("accessToken");
+  sessionStorage.removeItem("accessToken"); // Используем removeItem вместо removeItem("undefined")
   sessionStorage.removeItem("refreshToken");
 }
-
 /**
  * Обновляет access-токен через /auth/refresh.
  * Отправляет refreshToken в теле JSON-запроса.
  * Сохраняет новую пару токенов.
  * Возвращает true, если обновление прошло успешно.
  */
+/**
+ * Обновляет access-токен через /auth/refresh.
+ */
 async function refreshAccessToken() {
   if (_refreshPromise) return _refreshPromise; // refresh уже идёт — ждём его
 
   _refreshPromise = (async () => {
     try {
-      const refreshToken = getRefreshToken();
-      if (!refreshToken) return false; // Нечего обновлять
+      const oldRefreshToken = getRefreshToken();
+      
+      if (!oldRefreshToken) {
+        console.warn("[Auth] Попытка обновить токен, но refreshToken отсутствует.");
+        clearTokens();
+        return false; 
+      }
 
+      console.log("[Auth] Пробуем обновить accessToken...");
       const res = await fetch(buildUrl(CONFIG.ENDPOINTS.refresh), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refreshToken }), // Отправляем в теле!
+        body: JSON.stringify({ refreshToken: oldRefreshToken }), 
       });
 
       if (res.ok) {
         const data = await res.json();
-        // Предполагаем, что бэкенд возвращает { accessToken: "...", refreshToken: "..." }
-        setTokens(data.accessToken, data.refreshToken);
-        return true;
+        console.log("[Auth] Успешный ответ /auth/refresh:", data);
+        
+        const newAccess = data.accessToken || data.access_token;
+        // Если бэкенд не возвращает новый refreshToken, оставляем старый!
+        const newRefresh = data.refreshToken || data.refresh_token || oldRefreshToken;
+        
+        if (newAccess) {
+           setTokens(newAccess, newRefresh);
+           console.log("[Auth] Токены сохранены. AccessToken обновлен.");
+           return true;
+        } else {
+           console.error("[Auth] Сервер вернул 200, но accessToken отсутствует:", data);
+           clearTokens();
+           return false;
+        }
       }
       
-      clearTokens(); // Если бэкенд вернул ошибку, токены протухли
+      // Если сервер ответил ошибкой (400, 401 и т.д.)
+      const errorText = await res.text();
+      console.error(`[Auth] Ошибка обновления токена: HTTP ${res.status}`, errorText);
+      clearTokens(); 
       return false;
-    } catch {
+    } catch (err) {
+      console.error("[Auth] Исключение при обновлении токена:", err);
       clearTokens();
       return false;
     } finally {
@@ -75,10 +108,8 @@ async function refreshAccessToken() {
 
 /**
  * Запрос к API. Подкладывает Authorization: Bearer <token>.
- * При 401 один раз дёргает /auth/refresh и повторяет запрос.
  */
 async function apiFetch(path, options = {}, _retry = true) {
-  // Грамотно склеиваем заголовки: сохраняем те, что переданы, и добавляем Authorization
   const headers = new Headers(options.headers || {});
   
   const accessToken = getAccessToken();
@@ -86,26 +117,22 @@ async function apiFetch(path, options = {}, _retry = true) {
     headers.set("Authorization", `Bearer ${accessToken}`);
   }
 
-  // Если в options передан body типа FormData, мы НЕ должны ставить Content-Type вручную,
-  // браузер сам поставит multipart/form-data с границей (boundary).
-  // Если это JSON — Content-Type уже должен быть в options.headers.
-
   const res = await fetch(buildUrl(path), {
     ...options,
     headers,
-    // credentials: "include" больше НЕ нужен, так как куки не используем
   });
 
   // 401 = протух access-токен -> пробуем обновить и повторить ОДИН раз.
   if (res.status === 401 && _retry) {
+    console.warn(`[API] Получен 401 на ${path}. Пробуем обновить токен...`);
     const ok = await refreshAccessToken();
     if (ok) {
-      // Обновляем заголовок с новым токеном для повторного запроса
+      console.log("[API] Токен обновлён, повторяем запрос...");
       headers.set("Authorization", `Bearer ${getAccessToken()}`);
       return apiFetch(path, { ...options, headers }, false); 
     }
 
-    // refresh не удался -> refresh-токен тоже протух -> на страницу входа
+    console.error("[API] Не удалось обновить токен. Редирект на логин.");
     clearTokens();
     redirectToLogin();
     throw new Error("Сессия истекла. Войдите снова.");
@@ -113,7 +140,6 @@ async function apiFetch(path, options = {}, _retry = true) {
 
   return res;
 }
-
 function redirectToLogin() {
   if (!location.pathname.endsWith("login.html")) {
     location.replace("login.html");
@@ -122,6 +148,9 @@ function redirectToLogin() {
 
 /* -------- Авторизация -------- */
 
+/**
+ * Вход. Теперь читает токены из тела ответа и сохраняет их.
+ */
 /**
  * Вход. Теперь читает токены из тела ответа и сохраняет их.
  */
@@ -134,11 +163,24 @@ async function login(loginValue, passwordValue) {
 
   if (res.ok) {
     const data = await res.json();
-    // Предполагаем, что бэкенд возвращает { accessToken: "...", refreshToken: "..." }
-    setTokens(data.accessToken, data.refreshToken);
+    
+    // ДИАГНОСТИКА: Посмотри в консоль, как реально называются поля!
+    console.log("Ответ сервера при логине:", data); 
+    
+    // Поддержка разных вариантов названий полей от бэкенда
+    const accessToken = data.accessToken || data.access_token || data.token;
+    const refreshToken = data.refreshToken || data.refresh_token;
+
+    if (accessToken && refreshToken) {
+      setTokens(accessToken, refreshToken);
+    } else {
+      console.error("Бэкенд не вернул ожидаемые токены! Проверь структуру ответа в консоли.");
+      // Если бэкенд не использует refreshToken, возможно нужно сохранить только accessToken
+      // В таком случае нужно поменять логику refreshAccessToken
+    }
   }
 
-  return res; // Возвращаем res, чтобы страница логина могла обработать 401/403 (неверный пароль)
+  return res;
 }
 
 async function logout() {
@@ -283,4 +325,36 @@ async function deleteStation(id) {
     { method: "DELETE" }
   );
   if (!res.ok) throw new Error(`удаление станции — HTTP ${res.status}`);
+}
+/* Добавь это в конец файла api.js */
+
+/**
+ * Получение станции по названию и ветке.
+ * GET /api/stations?stationName=...&branch=...
+ */
+async function fetchStationByNameAndBranch(name, branch) {
+  const url = `${CONFIG.ENDPOINTS.stationsBase}?stationName=${encodeURIComponent(name)}&branch=${encodeURIComponent(branch)}`;
+  const res = await apiFetch(url);
+  if (!res.ok) throw new Error(`получение станции — HTTP ${res.status}`);
+  const data = await res.json();
+  // В зависимости от бэкенда, может возвращаться массив или объект. Безопасно обрабатываем оба случая.
+  if (Array.isArray(data)) return data[0] || null;
+  return data;
+}
+
+/**
+ * Обновление станции по ID.
+ * PUT /api/stations/{id}
+ */
+async function updateStation(id, request) {
+  const res = await apiFetch(
+    `${CONFIG.ENDPOINTS.stationsBase}/${encodeURIComponent(id)}`,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(request),
+    }
+  );
+  if (!res.ok) throw new Error(`обновление станции — HTTP ${res.status}`);
+  return res.json();
 }
