@@ -541,7 +541,6 @@ async function onStationChange() {
     
     // Показываем форму и скроллим к ней
     $("station-editor").hidden = false;
-    $("station-editor").scrollIntoView({ behavior: 'smooth', block: 'start' });
     showStatus("");
   } catch (err) {
     showStatus("Не удалось загрузить станцию: " + err.message, "error");
