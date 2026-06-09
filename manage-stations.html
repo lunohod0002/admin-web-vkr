@@ -4,34 +4,117 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Управление станциями</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <header class="topbar topbar--with-search">
+  <!-- Топбар -->
+  <header class="topbar">
     <div class="topbar__left">
-      <a href="dashboard.html" class="btn btn--text">← Назад</a>
-      <span class="topbar__title">Станции</span>
+      <a href="dashboard.html" class="btn btn--text" style="font-size: 20px; padding: 0 8px 0 0;">←</a>
+      <span class="topbar__title">Управление станциями</span>
     </div>
-    <div class="topbar__search">
-      <input
-        id="search"
-        class="input search-input"
-        type="search"
-        placeholder="Поиск по названию или ID"
-        autocomplete="off"
-      />
-    </div>
+    <button id="logout-btn" class="btn btn--text" onclick="logout()">Выйти</button>
   </header>
 
   <main class="page">
-    <div id="status" class="status" role="alert" hidden></div>
+    <h1 class="title title--lg">Редактирование станции</h1>
+    
+    <!-- Блок выбора ветки и станции -->
+    <div style="margin-bottom: 32px; display: flex; flex-direction: column; gap: 16px;">
+      <div class="field">
+        <label class="label" for="branch-select">Ветка</label>
+        <select id="branch-select" class="input">
+          <option value="">Загрузка...</option>
+        </select>
+      </div>
+      
+      <div class="field">
+        <label class="label" for="station-select">Станция</label>
+        <select id="station-select" class="input" disabled>
+          <option value="">-- Сначала выберите ветку --</option>
+        </select>
+      </div>
+    </div>
 
-    <ul id="stations-list" class="attraction-list"></ul>
+    <!-- Форма редактирования (изначально скрыта) -->
+    <div id="station-editor" hidden>
+      <form id="station-form" class="form">
 
-    <p id="empty-state" class="empty-state" hidden></p>
+        
+        <div class="field">
+          <label class="label" for="description">Описание</label>
+          <textarea id="description" class="input textarea"></textarea>
+        </div>
+
+        <!-- Медиа -->
+        <h2 class="title title--md">Медиа</h2>
+        
+        <div class="media-row">
+          <label class="label label--inline">Фото</label>
+          <input type="file" id="photo-input" class="hidden-file" accept="image/*" multiple />
+          <button type="button" class="btn btn--grey btn--small" data-for="photo-input">Выбрать файлы</button>
+          <button type="button" class="btn btn--view btn--small" data-type="PHOTO" id="photo-view-btn" disabled>Посмотреть медиа</button>
+        </div>
+        <span id="photo-count" class="hint" hidden></span>
+
+        <div class="media-row">
+          <label class="label label--inline">Видео</label>
+          <input type="file" id="video-input" class="hidden-file" accept="video/*" multiple />
+          <button type="button" class="btn btn--grey btn--small" data-for="video-input">Выбрать файлы</button>
+          <button type="button" class="btn btn--view btn--small" data-type="VIDEO" id="video-view-btn" disabled>Посмотреть медиа</button>
+        </div>
+        <span id="video-count" class="hint" hidden></span>
+
+        <div class="media-row">
+          <label class="label label--inline">Аудио</label>
+          <input type="file" id="audio-input" class="hidden-file" accept="audio/*" multiple />
+          <button type="button" class="btn btn--grey btn--small" data-for="audio-input">Выбрать файлы</button>
+          <button type="button" class="btn btn--view btn--small" data-type="AUDIO" id="audio-view-btn" disabled>Посмотреть медиа</button>
+        </div>
+        <span id="audio-count" class="hint" hidden></span>
+
+        <!-- Вышки связи -->
+        <h2 class="title title--md">Вышки сотовой связи</h2>
+        <div class="station-builder">
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <input id="towerMcc" class="input" placeholder="MCC" />
+            <input id="towerMnc" class="input" placeholder="MNC" />
+            <input id="towerCid" class="input" placeholder="CID" />
+            <input id="towerLac" class="input" placeholder="LAC" />
+            <input id="towerRadio" class="input" placeholder="Radio" />
+          </div>
+          <button type="button" id="add-tower-btn" class="btn btn--primary btn--narrow">Добавить вышку</button>
+        </div>
+        <ul id="towers-list" class="stations-list"></ul>
+
+        <!-- Достопримечательности -->
+        <h2 class="title title--md">Достопримечательности</h2>
+        <div class="station-builder">
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <input id="attractionId" class="input" placeholder="ID достопримечательности" type="number" />
+            <input id="attractionDistance" class="input" placeholder="Расстояние (м)" type="number" />
+          </div>
+          <button type="button" id="add-attraction-btn" class="btn btn--primary btn--narrow">Добавить</button>
+        </div>
+        <ul id="attractions-list" class="stations-list"></ul>
+
+        <button type="submit" id="submit-btn" class="btn btn--primary btn--block submit-btn">Сохранить изменения</button>
+      </form>
+      
+      <div id="status" class="status" hidden></div>
+    </div>
+
+    <!-- Модалка для медиа -->
+    <div id="media-modal" class="modal" hidden>
+      <div class="modal__backdrop"></div>
+      <div class="modal__dialog">
+        <div class="modal__head">
+          <h3 id="media-modal-title" class="modal__title">Медиа</h3>
+          <button type="button" id="media-modal-close" class="modal__close">&times;</button>
+        </div>
+        <div id="media-modal-body" class="modal__body"></div>
+      </div>
+    </div>
   </main>
 
   <script src="config.js"></script>
