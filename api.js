@@ -151,8 +151,8 @@ async function logout() {
 
 /**
  * Получение списка всех станций.
- * Ожидаемый формат ответа: { stations: [{ name, branch }, ...] }
- * Возвращает массив объектов { name, branch }.
+ * Ожидаемый формат ответа: { stations: [{ id, name, branch }, ...] }
+ * Возвращает массив объектов { id, name, branch }.
  */
 async function fetchStations() {
   const res = await apiFetch(CONFIG.ENDPOINTS.stations);
@@ -257,4 +257,30 @@ async function fetchMediaBlobUrl(urlOrPath) {
   if (!res.ok) throw new Error(`загрузка медиа — HTTP ${res.status}`);
   const blob = await res.blob();
   return URL.createObjectURL(blob);
+}
+/**
+ * Создание новой станции.
+ * Тело — { name, branch, description, media: { photoUrls, videoUrls, audioUrls }, cellTowers[] }.
+ * Возвращает созданный объект (минимум { id, ... }).
+ */
+async function createStation(request) {
+  const res = await apiFetch(CONFIG.ENDPOINTS.createStation, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(request),
+  });
+  if (!res.ok) throw new Error(`создание станции — HTTP ${res.status}`);
+  return res.json();
+}
+
+/**
+ * Удаление станции по ID.
+ * DELETE /api/stations/{id}
+ */
+async function deleteStation(id) {
+  const res = await apiFetch(
+    `${CONFIG.ENDPOINTS.stationsBase}/${encodeURIComponent(id)}`,
+    { method: "DELETE" }
+  );
+  if (!res.ok) throw new Error(`удаление станции — HTTP ${res.status}`);
 }

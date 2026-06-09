@@ -25,13 +25,18 @@
       <a class="btn btn--outline btn--block" href="manage-attractions.html">
         Управление достопримечательностями
       </a>
+      <a class="btn btn--outline btn--block" href="add-station.html">
+        Добавить станцию
+      </a>
+      <a class="btn btn--outline btn--block" href="manage-stations.html">
+        Управление станциями
+      </a>
     </div>
   </main>
 
   <script src="config.js"></script>
   <script src="api.js"></script>
   <script>
-    // Защита маршрута: без токена — на логин.
     if (!sessionStorage.getItem("accessToken")) {
       location.replace("login.html");
     }
