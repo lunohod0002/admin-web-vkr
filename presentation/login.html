@@ -32,8 +32,8 @@
     </form>
   </main>
 
-  <script src="config.js"></script>
-  <script src="api.js"></script>
+  <script src="../config/config.js"></script>
+  <script src="../api/api.js"></script>
   <script>
     const form = document.getElementById("login-form");
     const statusEl = document.getElementById("login-status");
@@ -74,7 +74,8 @@
           showError("Ошибка входа: HTTP " + res.status);
         }
       } catch (err) {
-        showError("Не удалось соединиться с сервером");
+        showError("Не удалось соединиться с сервером ");
+        console.log(err);
       } finally {
         btn.disabled = false;
         btn.textContent = "Войти";

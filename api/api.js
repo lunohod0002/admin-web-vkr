@@ -27,9 +27,7 @@ function getRefreshToken() {
 }
 
 function setTokens(access, refresh) {
-  // ВАЖНО: не сохраняем undefined или null, чтобы не ломать логику
   if (!access || !refresh) {
-    console.error("Попытка сохранить невалидные токены:", { access, refresh });
     clearTokens();
     return;
   }
@@ -38,7 +36,7 @@ function setTokens(access, refresh) {
 }
 
 function clearTokens() {
-  sessionStorage.removeItem("accessToken"); // Используем removeItem вместо removeItem("undefined")
+  sessionStorage.removeItem("accessToken"); 
   sessionStorage.removeItem("refreshToken");
 }
 /**
@@ -146,14 +144,7 @@ function redirectToLogin() {
   }
 }
 
-/* -------- Авторизация -------- */
 
-/**
- * Вход. Теперь читает токены из тела ответа и сохраняет их.
- */
-/**
- * Вход. Теперь читает токены из тела ответа и сохраняет их.
- */
 async function login(loginValue, passwordValue) {
   const res = await fetch(buildUrl(CONFIG.ENDPOINTS.login), {
     method: "POST",
@@ -164,8 +155,6 @@ async function login(loginValue, passwordValue) {
   if (res.ok) {
     const data = await res.json();
     
-    // ДИАГНОСТИКА: Посмотри в консоль, как реально называются поля!
-    console.log("Ответ сервера при логине:", data); 
     
     // Поддержка разных вариантов названий полей от бэкенда
     const accessToken = data.accessToken || data.access_token || data.token;
@@ -174,9 +163,7 @@ async function login(loginValue, passwordValue) {
     if (accessToken && refreshToken) {
       setTokens(accessToken, refreshToken);
     } else {
-      console.error("Бэкенд не вернул ожидаемые токены! Проверь структуру ответа в консоли.");
-      // Если бэкенд не использует refreshToken, возможно нужно сохранить только accessToken
-      // В таком случае нужно поменять логику refreshAccessToken
+      console.error("Ошибка входа");
     }
   }
 
@@ -189,13 +176,7 @@ async function logout() {
   redirectToLogin();
 }
 
-/* -------- Справочники -------- */
 
-/**
- * Получение списка всех станций.
- * Ожидаемый формат ответа: { stations: [{ id, name, branch }, ...] }
- * Возвращает массив объектов { id, name, branch }.
- */
 async function fetchStations() {
   const res = await apiFetch(CONFIG.ENDPOINTS.stations);
   if (!res.ok) throw new Error(`получение станций — HTTP ${res.status}`);
@@ -210,22 +191,12 @@ async function fetchAttractions() {
   return Array.isArray(data?.attractions) ? data.attractions : [];
 }
 
-/**
- * Получение одной достопримечательности по ID.
- * Используется на странице редактирования (add-attraction.html?id=...).
- * Ожидаемый ответ — объект AttractionInfoResponse:
- *   { id, name, phoneNumber, email, address, workingHours, description,
- *     price, urlRef, images[], videos[], audios[], stationAttractions[] }
- */
 async function fetchAttraction(id) {
   const res = await apiFetch(`${CONFIG.ENDPOINTS.attractions}/${encodeURIComponent(id)}`);
   if (!res.ok) throw new Error(`получение достопримечательности — HTTP ${res.status}`);
   return res.json();
 }
 
-/**
- * Удаление достопримечательности по ID.
- */
 async function deleteAttraction(id) {
   const res = await apiFetch(`${CONFIG.ENDPOINTS.attractions}/${id}`, {
     method: "DELETE",
@@ -233,10 +204,7 @@ async function deleteAttraction(id) {
   if (!res.ok) throw new Error(`удаление — HTTP ${res.status}`);
 }
 
-/**
- * Создание новой достопримечательности.
- * Тело — AttractionRequest. Возвращает созданный объект (AttractionInfoResponse).
- */
+
 async function createAttraction(request) {
   const res = await apiFetch(CONFIG.ENDPOINTS.attractions, {
     method: "POST",
@@ -342,10 +310,7 @@ async function fetchStationByNameAndBranch(name, branch) {
   return data;
 }
 
-/**
- * Обновление станции по ID.
- * PUT /api/stations/{id}
- */
+
 async function updateStation(id, request) {
   const res = await apiFetch(
     `${CONFIG.ENDPOINTS.stationsBase}/${encodeURIComponent(id)}`,

@@ -1,6 +1,4 @@
-/* ============================================================
-   Логика страницы управления достопримечательностями.
-   ============================================================ */
+
 
 const state = {
   attractions: [],
@@ -10,7 +8,6 @@ const state = {
 
 const $ = (id) => document.getElementById(id);
 
-/* -------- Статусы -------- */
 function showStatus(message, kind = "") {
   const el = $("status");
   el.textContent = message || "";
@@ -18,7 +15,6 @@ function showStatus(message, kind = "") {
   el.className = "status" + (kind ? " status--" + kind : "");
 }
 
-/* -------- Загрузка с сервера -------- */
 async function loadAttractions() {
   showStatus("Загрузка...");
   try {
@@ -31,13 +27,7 @@ async function loadAttractions() {
   }
 }
 
-/* -------- Работа с медиа -------- */
 
-/**
- * Из строки (имя файла или полный URL) достаёт чистое имя файла.
- * "http://localhost:8080/api/medias/download/abc.jpg" -> "abc.jpg"
- * "abc.jpg" -> "abc.jpg"
- */
 function extractFilename(mediaRef) {
   if (!mediaRef) return null;
   const noQuery = String(mediaRef).split("?")[0];
@@ -45,10 +35,8 @@ function extractFilename(mediaRef) {
   return parts[parts.length - 1] || null;
 }
 
-/**
- * Собирает все имена медиафайлов достопримечательности
- * из images/videos/audios, удаляя дубликаты.
- */
+
+
 function collectMediaFilenames(a) {
   const all = [
     ...(a.images || []),
@@ -59,7 +47,6 @@ function collectMediaFilenames(a) {
   return [...new Set(filenames)];
 }
 
-/* -------- Локальная фильтрация -------- */
 function applyFilter() {
   const q = state.query.trim().toLowerCase();
 
@@ -76,7 +63,6 @@ function applyFilter() {
   render();
 }
 
-/* -------- Рендер -------- */
 function render() {
   const list = $("attractions-list");
   list.innerHTML = "";
@@ -101,7 +87,6 @@ function buildCard(a) {
   li.className = "attraction-card";
   li.dataset.id = a.id;
 
-  /* Левая часть — информация */
   const info = document.createElement("div");
   info.className = "attraction-card__info";
 
@@ -119,7 +104,7 @@ function buildCard(a) {
   header.append(name, idBadge);
   info.append(header);
 
-  /* Мета: адрес, часы, цена, медиа */
+
   const metaParts = [];
   if (a.address) metaParts.push(a.address);
   if (a.workingHours) metaParts.push(a.workingHours);
@@ -138,7 +123,6 @@ function buildCard(a) {
     info.append(meta);
   }
 
-  /* Правая часть — кнопки */
   const actions = document.createElement("div");
   actions.className = "attraction-card__actions";
 
@@ -160,10 +144,8 @@ function buildCard(a) {
   return li;
 }
 
-/* -------- Действия -------- */
 function onEdit(a) {
-  // Переходим на ту же форму, что и для добавления, но в режиме
-  // редактирования: attraction.js увидит ?id=... и подтянет данные с сервера.
+
   location.href = "add-attraction.html?id=" + encodeURIComponent(a.id);
 }
 
@@ -175,8 +157,7 @@ async function onDelete(a, btn) {
 
   btn.disabled = true;
   try {
-    // 1. Удаляем медиафайлы параллельно. Используем allSettled,
-    //    чтобы один сбойный файл не блокировал остальные и саму запись.
+
     let failedCount = 0;
     if (filenames.length) {
       const results = await Promise.allSettled(
@@ -189,10 +170,8 @@ async function onDelete(a, btn) {
       }
     }
 
-    // 2. Удаляем саму достопримечательность.
     await deleteAttraction(a.id);
 
-    // 3. Обновляем UI.
     state.attractions = state.attractions.filter((x) => x.id !== a.id);
     applyFilter();
 
@@ -207,7 +186,6 @@ async function onDelete(a, btn) {
   }
 }
 
-/* -------- Поиск с debounce -------- */
 let searchTimer = null;
 function onSearchInput(value) {
   clearTimeout(searchTimer);
@@ -217,7 +195,6 @@ function onSearchInput(value) {
   }, 150);
 }
 
-/* -------- Инициализация -------- */
 document.addEventListener("DOMContentLoaded", () => {
   if (!sessionStorage.getItem("accessToken")) {
     location.replace("login.html");
